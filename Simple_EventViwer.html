@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Testing</title>
+    <style>
+        textarea {
+            width: 100%;
+        }
+        .event_holder {
+            display: flexbox;
+            justify-content: center;
+            overflow-x: scroll;
+        }
+        .event {
+            display: inline-flex;
+            border: 1px solid black;
+            border-radius: 1rem;
+            align-items: baseline;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .event > div {
+            display: inline-block;
+            border: 1px solid black;
+            border-radius: 1rem;
+            width: 500px;
+            height: 300px;
+            overflow-y: scroll;
+        }
+        .event > div > h4 {
+            font-size: large;
+            font-weight: bolder;
+            text-align: center;
+            border-bottom: 1px solid gray;
+        }
+        .loading_bar {
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            width: 200px;
+            height: 200px;
+            background-color: gray;
+            color: white;
+            font-size: large;
+        }
+        .loading_bar_spinner {
+            margin-top: 10px;
+            border-radius: 1rem;
+            width: 0;
+            height: 10px;
+            background-color: green;
+            animation: spinner 1s infinite;
+
+        }
+        @keyframes spinner {
+            from {width: 0%;}
+            to {width: 100%;}
+        }
+    </style>
+</head>
+<body>
+    <textarea id="user_json_text" cols="30" rows="10" placeholder="JSON text here"></textarea>
+    <button onclick="click_ParseJsonText()">Parse JSON text</button>
+    <input id="search_user" type="text" placeholder="User name/ID"></input>
+    <input id="search_document" type="text" placeholder="Document name/ID"></input>
+    <input id="search_date" type="text" placeholder="Date ex: 2023-04-26"></input>
+    <button onclick="click_SearchFor()">Search</button>
+</body>
+<script>
+    function click_ParseJsonText(user) {
+        loading(true);
+        let raw_JSON = document.getElementById("user_json_text").value;
+        let parsed_JSON;
+        try {
+            parsed_JSON = JSON.parse(raw_JSON);  
+        } catch (error) {
+            loading(false);
+            alert(error);
+            return false;
+        }
+        console.log(JSON.stringify(parsed_JSON).length);
+        log_ShowAllEvents(parsed_JSON, "");
+    }
+    function click_SearchFor(info) {
+        let user = document.getElementById("search_user").value;
+        let document_info = document.getElementById("search_document").value;
+        let date = document.getElementById("search_date").value;
+
+        let raw_JSON = document.getElementById("user_json_text").value;
+        let parsed_JSON;
+        try {
+            parsed_JSON = JSON.parse(raw_JSON);  
+        } catch (error) {
+            alert(error);
+            return false;
+        }
+        log_ShowThisEvent("",parsed_JSON, user, document_info, date);
+        
+    }
+    function log_ShowAllEvents(data_JSON, user = "", document_info = "", date = "") {
+        loading(false);
+        let events_Summary = {};
+        for (let i = 0; i < data_JSON.log.length; i++) {
+            if (events_Summary[data_JSON.log[i].action.id] == undefined) {
+                events_Summary[data_JSON.log[i].action.id] = 1
+
+            } else {
+                events_Summary[data_JSON.log[i].action.id]++;
+            }
+        }
+        let table = document.createElement("table");
+        table.innerHTML = "<tr> <th colspan='2'>Data summary</th> </tr>"
+        for (const event in events_Summary) {
+            let tr = document.createElement("tr");
+            let td_Event = document.createElement("td");
+            let td_EventCount = document.createElement("td");
+            let td_Button = document.createElement("button");
+
+            switch(event) {
+                case "create_action":
+                    td_Event.innerText = "Create Card";
+                    break;
+                case "project.userrole.edited":
+                    td_Event.innerText = "Edit User Role";
+                    break;
+                case "upload_document":
+                    td_Event.innerText = "Upload Document";
+                    break;
+                case "purge_action":
+                    td_Event.innerText = "Purge Card";
+                    break;
+                case "postusergetsinvited_project":
+                    td_Event.innerText = "Invite User(s)";
+                    break;
+                case "remove_member_project":
+                    td_Event.innerText = "Remove User";
+                    break;
+                case "create_document":
+                    td_Event.innerText = "Create Document";
+                    break;
+                case "change_visibility_tools_project":
+                    td_Event.innerText = "Change Tool Visibility";
+                    break;
+                case "change_access_folder":
+                    td_Event.innerText = "Change Access to Folder";
+                    break;
+                case "delete_document":
+                    td_Event.innerText = "Delete Document";
+                    break;
+                case "purge_document":
+                    td_Event.innerText = "Purge Document";
+                    break;
+                case "purge_folder":
+                    td_Event.innerText = "Purge Folder";
+                    break;
+                case "delete_folder":
+                    td_Event.innerText = "Delete Folder";
+                    break;
+                case "purge_planlet":
+                    td_Event.innerText = "Purge Activity";
+                    break;
+                case "copy_action":
+                    td_Event.innerText = "Copy Card";
+                    break;
+                case "purge_board":
+                    td_Event.innerText = "Purge Board";
+                    break;
+                case "restore_action":
+                    td_Event.innerText = "Restore Card";
+                    break;
+                case "trash_issue2":
+                    td_Event.innerText = "Delete Issue";
+                    break;
+                case "change_manager_project":
+                    td_Event.innerText = "Edit Manager Role";
+                    break;
+                default:
+                    td_Event.innerText = event;
+                    break;
+            }
+            td_EventCount.innerText = events_Summary[event];
+            td_Button.innerText = "Show these events";
+
+            td_Button.addEventListener("click", function() {log_ShowThisEvent(event, data_JSON, user, document_info, date)});
+
+            tr.appendChild(td_Event);
+            tr.appendChild(td_EventCount);
+            tr.appendChild(td_Button);
+
+            table.appendChild(tr);
+        }
+        document.body.appendChild(table);
+    }
+
+
+
+    function log_ShowThisEvent(event, data_JSON, user, document_info, date) {
+        let div_MainBox;
+        if (document.querySelector(".event_holder") == null) {
+            div_MainBox = document.createElement("div");
+            div_MainBox.classList.add("event_holder");
+        } else {
+            div_MainBox = document.querySelector(".event_holder");
+            div_MainBox.innerHTML = "";
+        }
+
+        if (user.length >= 1 || document_info.length >= 1 || date.length >= 1) {
+            matching_search();
+        } else {
+            normal_search();
+        }
+
+        function matching_search() {
+            let data_match = {index_search : "", data: []};
+
+            for (let i = 0; i < data_JSON.log.length; i++) {
+                
+                if (document_info.length >= 1) {
+                    if (data_JSON.log[i].action.id == "upload_document" || data_JSON.log[i].action.id == "create_document" || data_JSON.log[i].action.id == "delete_document" || data_JSON.log[i].action.id == "purge_document") {
+                        if (data_JSON.log[i].document_verbose.toLowerCase().includes(document_info.toLowerCase()) || data_JSON.log[i].document_id == document_info) {
+                            data_match.index_search = "document";
+                            data_match.data.push(data_JSON.log[i]);
+                        }
+                    }
+                }else if (date.length >= 1) {
+                    if (data_JSON.log[i].time.includes(date)) {
+                        data_match.index_search = "date";
+                        data_match.data.push(data_JSON.log[i]);
+                    }
+                } else if (user.length >= 1) {
+                    if ((data_JSON.log[i].user_verbose.toLowerCase()) == (user.toLowerCase()) || (data_JSON.log[i].user_id == user) || (data_JSON.log[i].user_verbose.toLowerCase().includes(user.toLowerCase()))) {
+                        data_match.index_search = "user";
+                        data_match.data.push(data_JSON.log[i])
+                    }
+                }
+            }
+            let filtered = [];
+            for (let i = 0; i < data_match.data.length; i++) {
+                switch (data_match.index_search) {
+                    case "document":
+                        var keep_user,keep_date = false;
+                        if (user.length >= 1) {
+                            if ((data_match.data[i].user_verbose.toLowerCase()) == (user.toLowerCase()) || (data_match.data[i].user_id == user)) {
+                                keep_user = true;
+                            }
+                        } else {
+                            keep_user = true;
+                        }
+                        if (date.length >= 1) {
+                            if (data_match.data[i].time.includes(date)) {
+                                keep_date = true
+                            }
+                        } else {
+                            keep_date = true;
+                        }
+                        
+                        if (keep_user && keep_date) {
+                            filtered.push(data_match.data[i]);
+                        }
+                        break;
+
+                    case "date":
+                        var keep_user,keep_document = false;
+                        if (user.length >= 1) {
+                            if ((data_match.data[i].user_verbose.toLowerCase()) == (user.toLowerCase()) || (data_match.data[i].user_id == user)) {
+                                keep_user = true;
+                            }
+                        } else {
+                            keep_user = true;
+                        }
+                        if (document_info.length >= 1) {
+                            if (data_match.data[i].document_verbose.toLowerCase().includes(document_info.toLowerCase()) || data_match.data[i].document_id == document_info) {
+                                keep_document = true
+                            }
+                        } else {
+                            keep_document = true;
+                        }
+                        
+                        if (keep_user && keep_document) {
+                            filtered.push(data_match.data[i]);
+                        }
+                        break;
+
+                    case "user":
+                        var keep_date,keep_document = false;
+                        if (date.length >= 1) {
+                            if (data_match.data[i].time.includes(date)) {
+                                keep_date = true;
+                            }
+                        } else {
+                            keep_date = true;
+                        }
+                        if (document_info.length >= 1) {
+                            if (data_match.data[i].document_verbose.toLowerCase().includes(document_info.toLowerCase()) || data_match.data[i].document_id == document_info) {
+                                keep_document = true
+                            }
+                        } else {
+                            keep_document = true;
+                        }
+                        
+                        if (keep_date && keep_document) {
+                            filtered.push(data_match.data[i]);
+                        }
+                        break;
+                
+                    default:
+                        console.error("data_match.index_search no index by that name");
+                        break;
+                }
+            }
+            data_match.data = filtered;
+            dispaly_data(data_match.data);
+        }
+
+        function normal_search() {
+            let data_match = [];
+            for (let i = 0; i < data_JSON.log.length; i++) {
+            
+                if (data_JSON.log[i].action.id == event) {
+
+                    data_match.push(data_JSON.log[i]);
+                       
+                }
+            }
+            dispaly_data(data_match);
+        }
+
+        function dispaly_data(event_data) {
+            for (let i = 0; i < event_data.length; i++) {                    
+
+                let div_Event = document.createElement("div");
+
+                let p_UserInfo = document.createElement("div");
+
+                let p_ArrowRight = document.createElement("h3");
+
+                let p_EventInfo = document.createElement("div");
+
+                p_UserInfo.innerHTML = "<h4>User</h4><p>ID: " + event_data[i].user_id + "</p> <p>Name: " + event_data[i].user_verbose + "</p>";
+                p_ArrowRight.innerHTML = "&#8594 "+event_data[i].action.description+" &#8594";
+                switch (event_data[i].action.id) {
+                    case "create_action":
+                        p_EventInfo.innerHTML = "<h4>Card</h4><p>ID: " + event_data[i].action_id + "</p> <p> Name: " + event_data[i].action_verbose + "</p> <p>Board ID: " +event_data[i].board_id + "</p> <p> Board Name: " + event_data[i].board_verbose + "</p> <p> Activity ID: " + event_data[i].planlet_id + "</p> <p> Activity Name: " + event_data[i].planlet_verbose + "</p><p>Time: " + data_JSON.log[i].time + "</p>";                        
+                        break;
+                    case "project.userrole.edited":
+                        p_EventInfo.innerHTML = "<h4>User</h4><p>ID: " + event_data[i].member_id + "</p> <p> Name: " + event_data[i].member_verbose + "</p> <p>Role: " +event_data[i].role + "</p> <p> Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "upload_document":
+                        p_EventInfo.innerHTML = "<h4>Document</h4><p>Folder ID: "+event_data[i].container_id+"<p>ID: " + event_data[i].document_id + "</p> <p> Name: " + event_data[i].document_verbose + "</p><p> Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "purge_action":
+                        p_EventInfo.innerHTML = "<h4>Object</h4><p>ID: "+event_data[i].action_id+"<p>Name: " + event_data[i].action_verbose + "</p> <p>Board ID: " + event_data[i].board_id + "</p><p>Board Name: " + event_data[i].board_verbose + "</p><p>End Date: " + event_data[i].end_date+"</p><p>Start Date: " + event_data[i].start_date +"</p><p>Activity Category: " + event_data[i].planlet_category + "</p><p>Activity ID: " + event_data[i].planlet_id + "</p><p>Activity Name: " + event_data[i].planlet_verbose + "</p><p>Date: " + event_data[i].time + "</p>";
+                        break;
+                    case "postusergetsinvited_project":
+                        p_EventInfo.innerHTML = "<h4>Invited Users</h4><p>Time: " + event_data[i].time + "</p>";
+                        event_data[i].invited_members.forEach(Member => {
+                            // BUG Member["member_id:"] should be Member.member_id this is reported and fixed, keeping it here just in case.
+                            let member_information = "<p>"+Member.member_verbose+" (ID: "+(Member["member_id:"] ?? Member.member_id)+")</p>";
+                            p_EventInfo.innerHTML += member_information;
+                        });
+                        break;
+                    case "remove_member_project":
+                        p_EventInfo.innerHTML = "<h4>User</h4><p>ID: " + event_data[i].member_id + "</p> <p> Name: " + event_data[i].member_verbose + "</p> <p> Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "create_document":
+                        p_EventInfo.innerHTML = "<h4>Document</h4><p>Folder ID: " + event_data[i].container_id + "</p> <p>Document ID: " + event_data[i].document_id + "</p> <p>Document Type: " + event_data[i].document_type + "</p><p>Document Name: " + event_data[i].document_verbose +"</p><p>Mode: " + (event_data[i].mode ?? "") + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "change_visibility_tools_project":
+                        p_EventInfo.innerHTML = "<h4>Tool</h4><p>Tool Name: " + event_data[i].tool + "</p><p>Visible set to : " + event_data[i].visible + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "change_access_folder":
+                        
+                        p_EventInfo.innerHTML = "<h4>Folder</h4><p>Folder ID: " + event_data[i].folder_id + "</p><p>Folder Name : " + event_data[i].folder_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        if (event_data[i].acl != undefined) {
+                            event_data[i].acl.forEach(Group => {
+                                let Group_Information = "";
+                                if (Group[0] == "PG") {
+                                    Group_Information += "<p>Group Type: Workspace Group </p>";
+                                } else {
+                                    Group_Information += "<p>Group Type: Members not in a Group </p>";
+                                }
+                                Group_Information += "<p>Group ID: "+ Group[1] +"</p>";
+                                switch (Group[2]) {
+                                    case 31:
+                                        Group_Information += "<p>Access right set to: Read and Write </p>";
+                                        break;
+                                    case 3:
+                                        Group_Information += "<p>Access right set to: Read </p>";
+                                        break;
+                                    case 0:
+                                        Group_Information += "<p>Access right set to: No access </p>";
+                                        break;
+                                    default:
+                                        Group_Information += "<p>Access right set to: " + Group[2] + "</p>";
+                                        break;
+                                }
+                                p_EventInfo.innerHTML += Group_Information;
+                            });
+                        } else {
+                            p_EventInfo.innerHTML += "<p>Inherit acess rights: " + event_data[i].inherit + "</p>";
+                        }
+                        
+                        break;
+                    case "delete_document":
+                        p_EventInfo.innerHTML = "<h4>Document</h4><p>ID: " + event_data[i].document_id + "</p><p>Name: " + event_data[i].document_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "purge_document":
+                        p_EventInfo.innerHTML = "<h4>Document</h4><p>ID: " + event_data[i].document_id + "</p><p>Name: " + event_data[i].document_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "purge_folder":
+                        p_EventInfo.innerHTML = "<h4>Folder</h4><p>ID: " + event_data[i].folder_id + "</p><p>Name: " + event_data[i].folder_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "delete_folder":
+                        p_EventInfo.innerHTML = "<h4>Folder</h4><p>ID: " + event_data[i].folder_id + "</p><p>Name: " + event_data[i].folder_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "purge_planlet":
+                        p_EventInfo.innerHTML = "<h4>Activity</h4><p>ID: " + event_data[i].planlet_id + "</p><p>Name: " + event_data[i].planlet_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "copy_action":
+                        p_EventInfo.innerHTML = "<h4>Card</h4><p>Card ID: " + event_data[i].action_id + "</p><p>Card Name: " + event_data[i].action_verbose + "</p><p>Board ID: " + event_data[i].board_id+"</p><p>Board name: " + event_data[i].board_verbose + "</p><p>Card Description: " + event_data[i].description + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "purge_board":
+                        p_EventInfo.innerHTML = "<h4>Board</h4><p>Board ID: " + event_data[i].board_id + "</p><p>Board Name: " + event_data[i].board_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "restore_action":
+                        p_EventInfo.innerHTML = "<h4>Card</h4><p>Card ID: " + event_data[i].action_id + "</p><p>Card Name: " + event_data[i].action_verbose + "</p><p>Card Local ID: " + event_data[i].action_localid +"</p><p>Board ID: " + event_data[i].board_id + "</p><p>Board Name: " + event_data[i].board_verbose + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "trash_issue2":
+                        p_EventInfo.innerHTML = "<h4>Issue</h4><p>Issue ID: " + event_data[i].issue2_id + "</p><p>Issue Name: " + event_data[i].issue2_verbose + "</p><p>Issue Local ID: " + event_data[i].local_id + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "change_manager_project":
+                        p_EventInfo.innerHTML = "<h4>User</h4><p>User ID: " + event_data[i].member_id + "</p><p>User Name: " + event_data[i].member_verbose + "</p><p>Role: " + event_data[i].role + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    case "change_access_tools_project":
+                        p_EventInfo.innerHTML = "<h4>User</h4><p>User ID: " + event_data[i].member_id + "</p><p>User Name: " + event_data[i].member_verbose + "</p><p>Role: " + event_data[i].role + "</p><p>Time: " + event_data[i].time + "</p>";
+                        break;
+                    default:
+                        p_EventInfo.innerHTML = "Unknown event: " + event_data[i].action.id;
+                        break;
+                }
+                div_Event.classList.add("event");
+
+                div_Event.appendChild(p_UserInfo);
+                div_Event.appendChild(p_ArrowRight);
+                div_Event.appendChild(p_EventInfo);
+
+                div_MainBox.appendChild(div_Event);
+            }
+        }
+        
+        
+        document.body.appendChild(div_MainBox);
+    }
+    function loading(state) {
+        if (state) {
+            let loading_bar = document.createElement("div");
+            loading_bar.classList.add("loading_bar");
+            loading_bar.innerHTML = "Loading data, webbrowser might freez, please do not close the tab. Depending on the amount of data it might take awhile. <div class='loading_bar_spinner'></div>";
+            document.body.appendChild(loading_bar);
+        } else {
+            document.querySelector(".loading_bar").remove()
+        }
+    }
+</script>
+</html>
